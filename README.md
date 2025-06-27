@@ -5,7 +5,7 @@ A nostalgic tribute to the 2000s PC demo scene, featuring classic visual effects
 ## Features
 
 ### Visual Effects
-- **Bouncing Logo**: "dpark" text with 3D gradient effects, scaling animation, and realistic physics
+- **Bouncing Logo**: "dpark.ai" text with 3D gradient effects, scaling animation, and realistic physics
 - **Plasma Background**: Classic real-time plasma effect with color cycling
 - **Vector Balls**: 8 glowing orbs moving in elliptical patterns with connecting lines
 - **3D Wireframe Cube**: Rotating cube with perspective projection and color cycling
