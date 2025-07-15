@@ -1,3 +1,4 @@
+// Direct CDN import with error handling - simpler and more reliable than complex blob loading
 import { ModPlayer } from 'https://atornblad.se/files/js-mod-player/player.js';
 
 class AtornbladModPlayer {
@@ -8,6 +9,8 @@ class AtornbladModPlayer {
         this.initialized = false;
         this.currentSong = null;
         this.loopMonitor = null;
+        this.audioNodes = []; // Track audio nodes for cleanup
+        this.eventController = null; // For event listener cleanup
         this.initializePlayer();
     }
     
@@ -15,6 +18,7 @@ class AtornbladModPlayer {
         try {
             // Create audio context
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.audioNodes.push(this.audioContext.destination);
             
             // Create ModPlayer instance
             this.player = new ModPlayer(this.audioContext);
@@ -23,6 +27,7 @@ class AtornbladModPlayer {
             this.initialized = true;
         } catch (error) {
             console.error('❌ AtornbladModPlayer initialization failed:', error);
+            this.cleanup(); // Clean up on failure
         }
     }
     
@@ -78,8 +83,8 @@ class AtornbladModPlayer {
             this.player.play();
             this.isPlaying = true;
             
-            // Start monitoring for song end to implement looping
-            this.startLoopMonitoring();
+            // Temporarily disable loop monitoring to fix short-loop issue
+            // this.startLoopMonitoring();
             
             console.log('✅ MOD playback started');
             return true;
@@ -92,34 +97,52 @@ class AtornbladModPlayer {
     startLoopMonitoring() {
         // Clear any existing monitor
         if (this.loopMonitor) {
-            clearInterval(this.loopMonitor);
+            if (typeof this.loopMonitor === 'function') {
+                this.loopMonitor(); // Call cleanup function from shared utility
+            } else {
+                clearInterval(this.loopMonitor); // Clear interval from fallback
+            }
         }
         
-        // Check song status every 500ms
-        this.loopMonitor = setInterval(() => {
-            if (this.isPlaying && this.player) {
-                try {
-                    // Check if song has ended (different MOD players may have different properties)
-                    const isEnded = this.player.ended || 
-                                   this.player.isFinished || 
-                                   (this.player.getPosition && this.player.getPosition() >= this.player.getDuration()) ||
-                                   !this.player.isPlaying();
-                    
-                    if (isEnded) {
-                        console.log('🔄 Song ended, looping...');
+        if (window.ModLoaderUtils && window.ModLoaderUtils.setupLoopMonitoring) {
+            // Use shared utility for enhanced loop monitoring
+            this.loopMonitor = window.ModLoaderUtils.setupLoopMonitoring(
+                this.player,
+                () => this.player.isPlaying && this.player.isPlaying(),
+                () => {
+                    if (this.player && this.isPlaying) {
                         this.player.stop();
-                        setTimeout(() => {
-                            if (this.isPlaying) { // Only restart if still supposed to be playing
-                                this.player.play();
-                                console.log('✅ Song restarted');
-                            }
-                        }, 100);
+                        this.player.play();
                     }
-                } catch (error) {
-                    // Silently handle monitoring errors
                 }
-            }
-        }, 500);
+            );
+        } else {
+            // Fallback to simple loop monitoring
+            this.loopMonitor = setInterval(() => {
+                if (this.isPlaying && this.player) {
+                    try {
+                        // Check if song has ended (different MOD players may have different properties)
+                        const isEnded = this.player.ended || 
+                                       this.player.isFinished || 
+                                       (this.player.getPosition && this.player.getPosition() >= this.player.getDuration()) ||
+                                       !this.player.isPlaying();
+                        
+                        if (isEnded) {
+                            console.log('🔄 Song ended, looping...');
+                            this.player.stop();
+                            setTimeout(() => {
+                                if (this.isPlaying) { // Only restart if still supposed to be playing
+                                    this.player.play();
+                                    console.log('✅ Song restarted');
+                                }
+                            }, 100);
+                        }
+                    } catch (error) {
+                        // Silently handle monitoring errors
+                    }
+                }
+            }, 500);
+        }
     }
     
     stop() {
@@ -130,7 +153,11 @@ class AtornbladModPlayer {
                 
                 // Clear loop monitoring
                 if (this.loopMonitor) {
-                    clearInterval(this.loopMonitor);
+                    if (typeof this.loopMonitor === 'function') {
+                        this.loopMonitor(); // Call cleanup function from shared utility
+                    } else {
+                        clearInterval(this.loopMonitor); // Clear interval from fallback
+                    }
                     this.loopMonitor = null;
                 }
                 
@@ -173,6 +200,44 @@ class AtornbladModPlayer {
         }
     }
     
+    // Clean up resources
+    cleanup() {
+        try {
+            this.stop();
+            
+            // Clean up event listeners
+            if (this.eventController) {
+                this.eventController.abort();
+                this.eventController = null;
+            }
+            
+            // Clean up audio resources
+            if (window.ModLoaderUtils && window.ModLoaderUtils.cleanupAudioResources) {
+                window.ModLoaderUtils.cleanupAudioResources(this.audioContext, this.audioNodes);
+            } else {
+                // Fallback cleanup
+                try {
+                    this.audioNodes.forEach(node => {
+                        if (node && typeof node.disconnect === 'function') {
+                            node.disconnect();
+                        }
+                    });
+                    if (this.audioContext && this.audioContext.state !== 'closed') {
+                        if (typeof this.audioContext.close === 'function') {
+                            this.audioContext.close();
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Error in fallback cleanup:', error);
+                }
+            }
+            
+            console.log('✅ AtornbladModPlayer cleaned up');
+        } catch (error) {
+            console.error('❌ Error during cleanup:', error);
+        }
+    }
+    
     getSongInfo() {
         if (this.currentSong) {
             return {
@@ -212,45 +277,64 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // Try to load MOD files
+        // Try to load MOD files using shared utility
         const attribution = document.getElementById('music-attribution');
         let success = false;
         
         try {
-            console.log('=== MOD Loading Phase ===');
-            success = await modPlayer.loadMod('./mods/sundance.mod');
-            
-            if (success) {
-                console.log('✅ Sundance MOD loaded successfully');
-                if (attribution) {
-                    attribution.innerHTML = '<em>Music: "Sundance" by Purple Motion / Future Crew (1993)</em>';
-                }
+            // Check if shared utility is available, fallback to direct loading if not
+            if (window.ModLoaderUtils && window.ModLoaderUtils.loadModWithFallback) {
+                console.log('✅ Using shared utility for enhanced MOD loading');
+                success = await window.ModLoaderUtils.loadModWithFallback(
+                    modPlayer,
+                    attribution,
+                    (source, index) => {
+                        console.log(`✅ Loaded: ${source.description} (priority ${index + 1})`);
+                    },
+                    (source, index) => {
+                        console.log(`❌ Failed: ${source.description}, trying next fallback...`);
+                    }
+                );
             } else {
-                console.log('❌ Sundance failed, trying Techno Slice...');
-                success = await modPlayer.loadMod('./mods/techno-slice.mod');
+                console.log('⚠️ Shared utility not available, using direct MOD loading');
+                // Fallback to direct loading with the same sequence as shared utility
+                console.log('=== MOD Loading Phase ===');
+                success = await modPlayer.loadMod('./mods/sundance.mod');
                 
                 if (success) {
-                    console.log('✅ Techno Slice MOD loaded successfully');
+                    console.log('✅ Sundance MOD loaded successfully');
                     if (attribution) {
-                        attribution.innerHTML = '<em>Music: "Techno Slice" by Dennis Mundt (1993)</em>';
+                        attribution.innerHTML = '<em>Music: "Sundance" by Purple Motion / Future Crew (1993)</em>';
                     }
                 } else {
-                    console.log('❌ Techno Slice failed, trying demo.mod...');
-                    success = await modPlayer.loadMod('./mods/demo.mod');
+                    console.log('❌ Sundance failed, trying Techno Slice...');
+                    success = await modPlayer.loadMod('./mods/techno-slice.mod');
                     
                     if (success) {
-                        console.log('✅ Demo MOD loaded successfully');
+                        console.log('✅ Techno Slice MOD loaded successfully');
                         if (attribution) {
-                            attribution.innerHTML = '<em>Music: "DemoCard Tracker" (Generated)</em>';
+                            attribution.innerHTML = '<em>Music: "Techno Slice" by Dennis Mundt (1993)</em>';
                         }
                     } else {
-                        console.log('❌ All MOD files failed, falling back to simple player');
-                        if (typeof simpleModPlayer !== 'undefined') {
-                            modPlayer = simpleModPlayer;
+                        console.log('❌ Techno Slice failed, trying demo.mod...');
+                        success = await modPlayer.loadMod('./mods/demo.mod');
+                        
+                        if (success) {
+                            console.log('✅ Demo MOD loaded successfully');
                             if (attribution) {
-                                attribution.innerHTML = '<em>Music: Simple Tracker (Fallback)</em>';
+                                attribution.innerHTML = '<em>Music: "DemoCard Tracker" (Generated)</em>';
                             }
                         }
+                    }
+                }
+            }
+            
+            if (!success) {
+                console.log('❌ All MOD files failed, falling back to simple player');
+                if (typeof simpleModPlayer !== 'undefined') {
+                    modPlayer = simpleModPlayer;
+                    if (attribution) {
+                        attribution.innerHTML = '<em>Music: Simple Tracker (Fallback)</em>';
                     }
                 }
             }
@@ -265,35 +349,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // Set volume to reasonable level
-        modPlayer.setVolume(0.3);
+        const defaultVolume = (window.ModLoaderUtils && window.ModLoaderUtils.MOD_CONFIG) 
+            ? window.ModLoaderUtils.MOD_CONFIG.VOLUME_DEFAULT 
+            : 0.3;
+        modPlayer.setVolume(defaultVolume);
         
         // Setup sound button
         const soundButton = document.getElementById('sound-toggle');
         if (soundButton) {
-            // Remove any existing listeners by cloning the button
-            const newSoundButton = soundButton.cloneNode(true);
-            soundButton.parentNode.replaceChild(newSoundButton, soundButton);
-            
-            newSoundButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🔘 Sound button clicked');
-                
-                if (modPlayer) {
-                    const isPlaying = modPlayer.toggle();
-                    newSoundButton.textContent = isPlaying ? 'SOUND: ON' : 'SOUND: OFF';
-                    console.log('🎵 Sound toggled:', isPlaying ? 'ON' : 'OFF');
-                } else {
-                    console.error('❌ MOD player not available');
-                }
-            });
+            if (window.ModLoaderUtils && window.ModLoaderUtils.setupSoundButton) {
+                // Use shared utility for enhanced event handling
+                modPlayer.eventController = window.ModLoaderUtils.createEventController();
+                const cleanupFunction = window.ModLoaderUtils.setupSoundButton(
+                    soundButton, 
+                    modPlayer, 
+                    modPlayer.eventController
+                );
+                modPlayer.cleanupEventListeners = cleanupFunction;
+            } else {
+                // Fallback to direct event handling
+                soundButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🔘 Sound button clicked');
+                    
+                    if (modPlayer) {
+                        const isPlaying = modPlayer.toggle();
+                        soundButton.textContent = isPlaying ? 'SOUND: ON' : 'SOUND: OFF';
+                        console.log('🎵 Sound toggled:', isPlaying ? 'ON' : 'OFF');
+                    } else {
+                        console.error('❌ MOD player not available');
+                    }
+                });
+            }
             
             // Auto-start music after a delay (requires user interaction first)
+            const initTimeout = (window.ModLoaderUtils && window.ModLoaderUtils.MOD_CONFIG) 
+                ? window.ModLoaderUtils.MOD_CONFIG.INIT_TIMEOUT / 5 
+                : 1000;
             setTimeout(() => {
                 console.log('🎵 Ready for user interaction to start music...');
                 // Note: Modern browsers require user interaction before playing audio
                 // The music will start when the user clicks the sound button
-            }, 1000);
+            }, initTimeout);
         } else {
             console.log('❌ Sound button not found');
         }

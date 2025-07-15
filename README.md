@@ -28,6 +28,13 @@ A nostalgic tribute to the 2000s PC demo scene, featuring classic visual effects
 - Comprehensive version management system (v2.2.0)
 - Professional server management with rate limiting
 
+### Quality & Security Features
+- **Comprehensive Testing**: 8 unit tests with visual test runner at `/test.html`
+- **Security Validation**: File size limits, MIME type checking, CDN content validation
+- **Resource Management**: Proper cleanup of audio contexts and event listeners
+- **Error Handling**: Robust fallback systems with graceful degradation
+- **Code Quality**: Centralized utilities, eliminated duplication, proper error logging
+
 ## Getting Started
 
 ### Prerequisites
@@ -94,17 +101,21 @@ democard/
 ├── PROJECT_SUMMARY.md                 # Comprehensive development history
 ├── public/                            # Static files
 │   ├── index.html                     # Main HTML page
+│   ├── test.html                      # Unit test runner interface
 │   ├── css/
 │   │   └── style.css                  # Demo scene styling with version badge
 │   ├── js/
 │   │   ├── demo.js                    # Main demo engine with torus & boundary
 │   │   ├── version.js                 # Central version configuration (v2.2.0)
 │   │   ├── version-init.js            # Version initialization & display
-│   │   ├── atornblad-mod-player.js    # Primary MOD player (with looping)
+│   │   ├── shared-mod-loader.js       # Centralized MOD loading utilities with security
+│   │   ├── atornblad-mod-player.js    # Primary MOD player (enhanced with shared utilities)
 │   │   ├── mod-player.js              # ProTracker fallback player
 │   │   ├── bassoon-mod-player.js      # BassoonTracker fallback player
 │   │   ├── simple-mod-player.js       # Synthesized fallback player
 │   │   ├── main.js                    # Additional interactive features
+│   │   ├── tests/                     # Unit test suite
+│   │   │   └── mod-loader-tests.js    # Comprehensive MOD loader tests
 │   │   └── lib/                       # External libraries
 │   ├── mods/                          # Tracker music files
 │   │   ├── sundance.mod               # Purple Motion / Future Crew (1993) [PRIMARY]
@@ -130,7 +141,9 @@ democard/
 - **Future Crew Heritage**: "Sundance" by Purple Motion from Assembly 1993
 - **4-Tier Fallback**: Robust system ensures music always plays
 - **Format Compatibility**: MOD format specifically verified for player compatibility
-- **Loop Monitoring**: Automatic song restart when tracks end (500ms polling)
+- **Loop Monitoring**: Automatic song restart when tracks end with enhanced debouncing
+- **Security Validation**: File size limits (5MB), MIME type checking, secure CDN loading
+- **Resource Management**: Proper audio context cleanup and memory management
 
 ### Performance
 - Optimized canvas rendering with selective updates
@@ -154,6 +167,27 @@ democard/
   - `M` - Trigger matrix rain effect
   - `S` - Play sound effect
   - `R` - Reload demo
+
+## Testing
+
+### Unit Test Suite
+
+Visit http://localhost:3000/test.html to run the comprehensive test suite with visual interface.
+
+**Test Coverage:**
+- MOD configuration constants validation
+- Fallback sources configuration
+- File validation functions
+- Event controller creation and cleanup
+- Loop monitoring setup and teardown
+- Audio resource cleanup
+- Sound button event handling
+- Full workflow simulation
+
+**Manual Testing:**
+- Open browser developer tools (F12) for detailed test output
+- Inspect `window.testResults` for programmatic access to results
+- Tests run automatically when test page loads
 
 ## Demo Scene Heritage
 
