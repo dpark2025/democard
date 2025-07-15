@@ -154,28 +154,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const attribution = document.getElementById('music-attribution');
     try {
         console.log('=== MOD Loading Phase ===');
-        let success = await modPlayer.loadMod('./mods/techno-slice.mod');
+        let success = await modPlayer.loadMod('./mods/sundance.mod');
         
         if (success) {
-            console.log('✅ Techno Slice MOD loaded successfully');
+            console.log('✅ Sundance MOD loaded successfully');
             if (attribution) {
-                attribution.innerHTML = '<em>Music: "Techno Slice" by Dennis Mundt (1993)</em>';
+                attribution.innerHTML = '<em>Music: "Sundance" by Purple Motion / Future Crew (1993)</em>';
             }
         } else {
-            console.log('❌ Techno Slice failed, trying demo.mod...');
-            success = await modPlayer.loadMod('./mods/demo.mod');
+            console.log('❌ Sundance failed, trying Techno Slice...');
+            success = await modPlayer.loadMod('./mods/techno-slice.mod');
             
             if (success) {
-                console.log('✅ Demo MOD loaded successfully');
+                console.log('✅ Techno Slice MOD loaded successfully');
                 if (attribution) {
-                    attribution.innerHTML = '<em>Music: "DemoCard Tracker" (Generated)</em>';
+                    attribution.innerHTML = '<em>Music: "Techno Slice" by Dennis Mundt (1993)</em>';
                 }
             } else {
-                console.log('❌ All MOD files failed, falling back to simple player');
-                if (typeof simpleModPlayer !== 'undefined') {
-                    modPlayer = simpleModPlayer;
+                console.log('❌ Techno Slice failed, trying demo.mod...');
+                success = await modPlayer.loadMod('./mods/demo.mod');
+                
+                if (success) {
+                    console.log('✅ Demo MOD loaded successfully');
                     if (attribution) {
-                        attribution.innerHTML = '<em>Music: Simple Tracker (Fallback)</em>';
+                        attribution.innerHTML = '<em>Music: "DemoCard Tracker" (Generated)</em>';
+                    }
+                } else {
+                    console.log('❌ All MOD files failed, falling back to simple player');
+                    if (typeof simpleModPlayer !== 'undefined') {
+                        modPlayer = simpleModPlayer;
+                        if (attribution) {
+                            attribution.innerHTML = '<em>Music: Simple Tracker (Fallback)</em>';
+                        }
                     }
                 }
             }
