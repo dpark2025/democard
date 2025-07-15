@@ -1,27 +1,32 @@
 # DemoCard - 2000s Demo Scene Intro
 
-A nostalgic tribute to the 2000s PC demo scene, featuring classic visual effects and tracker music. This single-page application recreates the aesthetic and technical artistry of legendary demo groups like Future Crew.
+A nostalgic tribute to the 2000s PC demo scene, featuring classic visual effects and **authentic Future Crew tracker music**. This single-page application recreates the aesthetic and technical artistry of legendary demo groups, featuring Purple Motion's "Sundance" from Assembly 1993.
 
 ## Features
 
 ### Visual Effects
 - **Bouncing Logo**: "dpark.ai" text with 3D gradient effects, scaling animation, and realistic physics
-- **Plasma Background**: Classic real-time plasma effect with color cycling
-- **Vector Balls**: 8 glowing orbs moving in elliptical patterns with connecting lines
-- **3D Wireframe Cube**: Rotating cube with perspective projection and color cycling
-- **Starfield**: Moving stars with trails for fast-moving objects
-- **Sine Wave Scroller**: "Brought to you by Claude Code!" text scrolling across the bottom
+- **Vector Balls**: 4 glowing orbs moving in elliptical patterns with independent bouncing physics
+- **3D Wireframe Cube**: Rotating cube with perspective projection and bouncing collision physics
+- **3D Wireframe Torus**: Parametric torus with triple-axis rotation and independent bouncing
+- **Enhanced Starfield**: 300 stars with realistic radial motion trails and 30% faster movement
+- **Sine Wave Scroller**: "Brought to you by Claude Code!" with enhanced amplitude waves
+- **Scroller Boundary System**: Invisible barrier prevents object interference with bottom text
 
 ### Audio
-- **Tracker Music**: Real-time generated techno music using Web Audio API
-- **Classic Patterns**: 16-step sequencer with kick, snare, hi-hat, bass, and lead synth
-- **Sound Toggle**: Button in top-left corner to enable/disable music
+- **Authentic MOD Music**: "Sundance" by Purple Motion / Future Crew (1993)
+- **4-Tier Fallback System**: Sundance → Techno Slice → Generated → Synthesized
+- **Assembly 1993 Heritage**: Original competition track from legendary Assembly demoparty
+- **Sound Toggle**: Button defaults to OFF, respects user preferences and autoplay policies
+- **Seamless Looping**: Automatic song restart for continuous playback
 
 ### Technical Features
 - Canvas-based rendering for smooth 60fps animations
 - Authentic 2000s demo scene color palette (greens, blues, cyans)
 - Responsive design that works on all screen sizes
-- No external dependencies - pure vanilla JavaScript
+- AtornbladModPlayer for authentic MOD file playback
+- Comprehensive version management system (v2.2.0)
+- Professional server management with rate limiting
 
 ## Getting Started
 
@@ -83,35 +88,49 @@ npm start
 
 ```
 democard/
-├── server.js              # Express server
-├── package.json           # Node.js configuration
-├── start-server.sh        # Server management script
-├── public/                # Static files
-│   ├── index.html         # Main HTML page
+├── server.js                          # Express server with rate limiting
+├── package.json                       # Node.js configuration
+├── start-server.sh                    # Server management script
+├── PROJECT_SUMMARY.md                 # Comprehensive development history
+├── public/                            # Static files
+│   ├── index.html                     # Main HTML page
 │   ├── css/
-│   │   └── style.css      # Demo scene styling
+│   │   └── style.css                  # Demo scene styling with version badge
 │   ├── js/
-│   │   ├── demo.js        # Main demo effects
-│   │   └── audio.js       # Tracker music system
-│   ├── images/            # Assets directory
-│   └── fonts/             # Custom fonts directory
-└── README.md              # This file
+│   │   ├── demo.js                    # Main demo engine with torus & boundary
+│   │   ├── version.js                 # Central version configuration (v2.2.0)
+│   │   ├── version-init.js            # Version initialization & display
+│   │   ├── atornblad-mod-player.js    # Primary MOD player (with looping)
+│   │   ├── mod-player.js              # ProTracker fallback player
+│   │   ├── bassoon-mod-player.js      # BassoonTracker fallback player
+│   │   ├── simple-mod-player.js       # Synthesized fallback player
+│   │   ├── main.js                    # Additional interactive features
+│   │   └── lib/                       # External libraries
+│   ├── mods/                          # Tracker music files
+│   │   ├── sundance.mod               # Purple Motion / Future Crew (1993) [PRIMARY]
+│   │   ├── techno-slice.mod           # Dennis Mundt (1993) [FALLBACK 1]
+│   │   └── demo.mod                   # Generated fallback MOD [FALLBACK 2]
+│   ├── images/                        # Assets directory
+│   └── fonts/                         # Custom fonts directory
+└── README.md                          # This file
 ```
 
 ## Technical Details
 
 ### Demo Effects
-- **Plasma**: Real-time mathematical plasma generation using sine waves
-- **Vector Balls**: Physics-based circular motion with dynamic line connections
-- **3D Cube**: Matrix transformations for 3D rotation and perspective projection
-- **Starfield**: Z-buffer depth simulation for 3D star movement
-- **Text Effects**: Multi-layer rendering for 3D text appearance
+- **Vector Balls**: Physics-based circular motion with independent bouncing physics
+- **3D Cube**: Matrix transformations for 3D rotation with collision detection
+- **3D Torus**: Parametric torus geometry with 16 major × 8 minor segments
+- **Starfield**: Z-buffer depth simulation with realistic radial motion trails
+- **Text Effects**: Multi-layer rendering for 3D text with gradient effects
+- **Scroller Boundary**: Invisible collision system prevents object interference
 
 ### Audio System
-- **Web Audio API**: Real-time sound synthesis
-- **Tracker Pattern**: Classic 16-step sequencer
-- **Instruments**: Kick drum, snare, hi-hat, bass synth, lead synth
-- **Tempo**: 120 BPM with 16th note resolution
+- **MOD File Support**: AtornbladModPlayer for authentic 4-channel ProTracker playback
+- **Future Crew Heritage**: "Sundance" by Purple Motion from Assembly 1993
+- **4-Tier Fallback**: Robust system ensures music always plays
+- **Format Compatibility**: MOD format specifically verified for player compatibility
+- **Loop Monitoring**: Automatic song restart when tracks end (500ms polling)
 
 ### Performance
 - Optimized canvas rendering with selective updates
@@ -138,12 +157,18 @@ democard/
 
 ## Demo Scene Heritage
 
-This project pays homage to the PC demo scene of the 1990s and 2000s, particularly inspired by:
+This project pays homage to the PC demo scene of the 1990s and 2000s, featuring **authentic music** from legendary groups:
 
-- **Future Crew**: Finnish demo group known for "Second Reality" (1993)
-- **Classic Effects**: Vector balls, plasma, 3D wireframes, and scrollers
-- **Tracker Music**: MOD-style music composition and playback
-- **Technical Artistry**: Real-time effects on limited hardware
+- **Purple Motion / Future Crew**: "Sundance" from Assembly 1993 PC Music competition
+- **Assembly Heritage**: Original competition track from Finland's premier demoparty
+- **Format Authenticity**: 4-channel ProTracker MOD format from the golden era
+- **Classic Effects**: Vector balls, 3D wireframes, starfields, and sine wave scrollers
+- **Technical Artistry**: Real-time effects honoring the constraints and creativity of the era
+
+**Authentic Demoscene Credits:**
+- Music: "Sundance" by Purple Motion / Future Crew (1993)
+- Fallback: "Techno Slice" by Dennis Mundt (1993)
+- Visual Design: Inspired by classic PC demos and the legendary "Second Reality"
 
 ## Development
 
@@ -170,6 +195,12 @@ MIT License - Feel free to use this code for your own demo scene creations!
 
 Created with Claude Code - bringing the spirit of the demo scene to modern web development.
 
+**Special Thanks:**
+- **Purple Motion (Jonne Valtonen)** - For the legendary "Sundance" track and Future Crew legacy
+- **Future Crew** - For inspiring generations of demosceners with classics like "Second Reality"
+- **Assembly Demoparty** - For fostering the creative community that made this music possible
+- **ModArchive.org** - For preserving demoscene music heritage for future generations
+
 ---
 
-*"Greetings to all demo sceners - keep the scene alive!"*
+*"Greetings to Purple Motion, Future Crew, and all demo sceners - keep the scene alive!"*
