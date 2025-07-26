@@ -91,6 +91,7 @@ democard/
 ├── server.js                          # Express server with rate limiting
 ├── package.json                       # Node.js configuration
 ├── start-server.sh                    # Server management script
+├── nodejs-security-rule.yaml          # Custom Semgrep security rules
 ├── PROJECT_SUMMARY.md                 # Comprehensive development history
 ├── public/                            # Static files
 │   ├── index.html                     # Main HTML page
@@ -186,6 +187,43 @@ Edit the patterns in `public/js/audio.js`:
 - Change `this.pattern` arrays for different rhythms
 - Modify instrument functions for different sounds
 - Adjust `this.tempo` for speed changes
+
+## Security
+
+### Static Security Analysis
+
+The project includes a comprehensive custom Semgrep rule (`nodejs-security-rule.yaml`) that scans for common Node.js security vulnerabilities:
+
+#### Security Rules Coverage
+- **SQL Injection** - Detects unsafe database query construction
+- **Command Injection** - Identifies dangerous system command execution
+- **Path Traversal** - Catches unsafe file system operations
+- **Unsafe Code Evaluation** - Warns about `eval()` and dynamic code execution
+- **Weak Cryptography** - Flags broken hash algorithms (MD5, SHA1)
+- **Hardcoded Secrets** - Detects embedded API keys and credentials
+
+#### Running Security Scans
+
+```bash
+# Install Semgrep (if not already installed)
+pip install semgrep
+
+# Run security scan with custom rules
+semgrep --config=nodejs-security-rule.yaml .
+
+# Run with additional security rulesets
+semgrep --config=p/security-audit --config=nodejs-security-rule.yaml .
+```
+
+#### Rule Details
+Each security rule includes:
+- OWASP Top 10 mappings for compliance
+- CWE (Common Weakness Enumeration) classifications
+- Fix suggestions and secure coding examples
+- Risk ratings (Confidence/Impact/Likelihood)
+- Security reference documentation
+
+The custom rules are designed specifically for Node.js/JavaScript environments and complement Semgrep's built-in security rulesets.
 
 ## License
 

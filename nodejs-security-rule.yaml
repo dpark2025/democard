@@ -1,0 +1,234 @@
+rules:
+  - id: nodejs-sql-injection
+    message: |
+      Potential SQL injection vulnerability detected. User input is being directly concatenated 
+      into SQL queries without proper sanitization or parameterized queries. This can allow 
+      attackers to execute arbitrary SQL commands.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    pattern-either:
+      - patterns:
+          - pattern: |
+              $DB.query($SQL + $INPUT, ...)
+          - metavariable-regex:
+              metavariable: $INPUT
+              regex: .*(req\.|request\.|params\.|query\.|body\.).*
+      - patterns:
+          - pattern: |
+              $DB.query(`$...PARTS`, ...)
+          - metavariable-regex:
+              metavariable: $PARTS
+              regex: .*\$\{.*req\..*\}.*
+      - patterns:
+          - pattern: |
+              $SQL = $PREFIX + $INPUT + $SUFFIX
+          - pattern-inside: |
+              $DB.query($SQL, ...)
+          - metavariable-regex:
+              metavariable: $INPUT
+              regex: .*(req\.|request\.|params\.|query\.|body\.).*
+    fix: |
+      Use parameterized queries instead:
+      $DB.query('SELECT * FROM users WHERE id = ?', [$INPUT])
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+      owasp: "A03:2021 – Injection"
+      references:
+        - "https://owasp.org/www-community/attacks/SQL_Injection"
+        - "https://nodejs.org/en/docs/guides/security/"
+      confidence: HIGH
+      impact: HIGH
+      likelihood: MEDIUM
+
+  - id: nodejs-command-injection
+    message: |
+      Potential command injection vulnerability detected. User input is being passed directly 
+      to system command execution functions without proper validation or sanitization. This 
+      can allow attackers to execute arbitrary system commands.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: exec($CMD, ...)
+              - pattern: execSync($CMD, ...)
+              - pattern: spawn($CMD, ...)
+              - pattern: spawnSync($CMD, ...)
+              - pattern: child_process.exec($CMD, ...)
+              - pattern: child_process.execSync($CMD, ...)
+              - pattern: child_process.spawn($CMD, ...)
+              - pattern: child_process.spawnSync($CMD, ...)
+          - metavariable-regex:
+              metavariable: $CMD
+              regex: .*(req\.|request\.|params\.|query\.|body\.).*
+      - patterns:
+          - pattern-either:
+              - pattern: exec(`$...PARTS`, ...)
+              - pattern: execSync(`$...PARTS`, ...)
+              - pattern: child_process.exec(`$...PARTS`, ...)
+              - pattern: child_process.execSync(`$...PARTS`, ...)
+          - metavariable-regex:
+              metavariable: $PARTS
+              regex: .*\$\{.*req\..*\}.*
+    fix: |
+      Validate and sanitize input, or use spawn with array arguments:
+      spawn('command', [arg1, arg2], options)
+    metadata:
+      cwe: "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      owasp: "A03:2021 – Injection"
+      references:
+        - "https://owasp.org/www-community/attacks/Command_Injection"
+        - "https://nodejs.org/en/docs/guides/security/"
+      confidence: HIGH
+      impact: CRITICAL
+      likelihood: MEDIUM
+
+  - id: nodejs-path-traversal
+    message: |
+      Potential path traversal vulnerability detected. User-controlled input is being used 
+      in file system operations without proper validation. This can allow attackers to 
+      access files outside the intended directory.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    patterns:
+      - pattern-either:
+          - pattern: fs.readFile($PATH, ...)
+          - pattern: fs.readFileSync($PATH, ...)
+          - pattern: fs.writeFile($PATH, ...)
+          - pattern: fs.writeFileSync($PATH, ...)
+          - pattern: fs.createReadStream($PATH, ...)
+          - pattern: fs.createWriteStream($PATH, ...)
+          - pattern: fs.unlink($PATH, ...)
+          - pattern: fs.unlinkSync($PATH, ...)
+          - pattern: require($PATH)
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: .*(req\.|request\.|params\.|query\.|body\.).*
+      - pattern-not-inside: |
+          if ($VALIDATION) { ... }
+      - pattern-not-inside: |
+          $PATH = path.resolve($BASE, $PATH)
+    fix: |
+      Validate file paths and use path.resolve() with a safe base directory:
+      const safePath = path.resolve(safeBaseDir, path.normalize($PATH))
+    metadata:
+      cwe: "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+      owasp: "A01:2021 – Broken Access Control"
+      references:
+        - "https://owasp.org/www-community/attacks/Path_Traversal"
+        - "https://nodejs.org/en/docs/guides/security/"
+      confidence: HIGH
+      impact: HIGH
+      likelihood: MEDIUM
+
+  - id: nodejs-unsafe-eval
+    message: |
+      Use of eval() or similar dynamic code execution detected. This can lead to code 
+      injection vulnerabilities if user input reaches these functions. Avoid using 
+      eval() and similar functions with untrusted input.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    pattern-either:
+      - pattern: eval($CODE)
+      - pattern: Function($CODE)
+      - pattern: new Function($CODE)
+      - pattern: setTimeout($CODE, ...)
+      - pattern: setInterval($CODE, ...)
+      - patterns:
+          - pattern: vm.runInThisContext($CODE, ...)
+          - metavariable-regex:
+              metavariable: $CODE
+              regex: .*(req\.|request\.|params\.|query\.|body\.).*
+    fix: |
+      Use safer alternatives like JSON.parse() for data or avoid dynamic code execution entirely
+    metadata:
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code ('Eval Injection')"
+      owasp: "A03:2021 – Injection"
+      references:
+        - "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!"
+        - "https://nodejs.org/en/docs/guides/security/"
+      confidence: MEDIUM
+      impact: HIGH
+      likelihood: LOW
+
+  - id: nodejs-weak-crypto
+    message: |
+      Weak cryptographic algorithm detected. MD5 and SHA1 are cryptographically broken 
+      and should not be used for security purposes. Use SHA-256 or stronger algorithms.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    pattern-either:
+      - pattern: crypto.createHash('md5')
+      - pattern: crypto.createHash('sha1')
+      - pattern: crypto.createHash("md5")
+      - pattern: crypto.createHash("sha1")
+      - pattern: crypto.createHmac('md5', ...)
+      - pattern: crypto.createHmac('sha1', ...)
+      - pattern: crypto.createHmac("md5", ...)
+      - pattern: crypto.createHmac("sha1", ...)
+    fix: |
+      Use stronger cryptographic algorithms:
+      crypto.createHash('sha256') or crypto.createHash('sha512')
+    metadata:
+      cwe: "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp: "A02:2021 – Cryptographic Failures"
+      references:
+        - "https://nodejs.org/en/docs/guides/security/"
+        - "https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html"
+      confidence: HIGH
+      impact: MEDIUM
+      likelihood: HIGH
+
+  - id: nodejs-hardcoded-secret
+    message: |
+      Hardcoded secret or API key detected. Secrets should not be embedded directly 
+      in source code as they can be exposed in version control systems.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    mode: search
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $VAR = "$SECRET"
+              - pattern: $VAR = '$SECRET'
+              - pattern: const $VAR = "$SECRET"
+              - pattern: const $VAR = '$SECRET'
+              - pattern: let $VAR = "$SECRET"
+              - pattern: let $VAR = '$SECRET'
+              - pattern: var $VAR = "$SECRET"
+              - pattern: var $VAR = '$SECRET'
+          - metavariable-regex:
+              metavariable: $VAR
+              regex: .*(secret|password|pass|key|token|api).*
+          - metavariable-regex:
+              metavariable: $SECRET
+              regex: ^[A-Za-z0-9+/=]{20,}$|^[A-Fa-f0-9]{32,}$|^[A-Za-z0-9_-]{20,}$
+    fix: |
+      Use environment variables or secure configuration management:
+      const secret = process.env.SECRET_KEY
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2021 – Identification and Authentication Failures"
+      references:
+        - "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html"
+        - "https://nodejs.org/en/docs/guides/security/"
+      confidence: MEDIUM
+      impact: CRITICAL
+      likelihood: HIGH
