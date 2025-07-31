@@ -64,3 +64,5 @@ temp/
 
 # Yarn Integrity file
 .yarn-integrity
+
+.aider.env
